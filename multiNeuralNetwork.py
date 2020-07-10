@@ -6,8 +6,8 @@ from mpl_toolkits.mplot3d import Axes3D
 from numpy.core.fromnumeric import ndim
 
 
-class NeuralNetwork:
-    """神经网络
+class MultiNeuralNetwork:
+    """多层神经网络
     """
 
     def __init__(self, input_layer_nodes, hidden_layer_nodes, output_layer_nodes, learning_rate):
@@ -15,7 +15,7 @@ class NeuralNetwork:
 
         Args:
             input_nodes (Number): 输入层节点数量
-            hidden_nodes (Number): 隐藏层节点数量
+            hidden_nodes (Array): 隐藏层节点数量
             output_nodes (Number): 输出层节点数量
             learning_rate (Number): 学习率
         """
@@ -23,11 +23,16 @@ class NeuralNetwork:
         self.hidden_layer_nodes = hidden_layer_nodes
         self.output_layer_nodes = output_layer_nodes
         self.learning_rate = learning_rate
-        self.wih = np.random.normal(
-            0.0, pow(self.hidden_layer_nodes, -0.5), (self.hidden_layer_nodes, self.input_layer_nodes))
-        self.who = np.random.normal(
-            0.0, pow(self.output_layer_nodes, -0.5), (self.output_layer_nodes, self.hidden_layer_nodes))
+        self.wights = []
         self.activation_function = lambda x: 1.0 / (1.0 + np.exp(-x))
+
+        self.wights.append(np.random.normal(
+            0.0, pow(self.hidden_layer_nodes[0], -0.5), (self.hidden_layer_nodes[0], self.input_layer_nodes)))
+        for i in range(1, len(self.hidden_layer_nodes)):
+            self.wights.append(np.random.normal(
+                0.0, pow(self.hidden_layer_nodes[i], -0.5), (self.hidden_layer_nodes[i], self.hidden_layer_nodes[i - 1])))
+        self.wights.append(np.random.normal(
+            0.0, pow(self.output_layer_nodes, -0.5), (self.output_layer_nodes, self.hidden_layer_nodes[-1])))
 
     def train(self, input_data, output_data):
         """训练
@@ -39,18 +44,20 @@ class NeuralNetwork:
         input_data = np.array(input_data, ndmin=2).T
         output_data = np.array(output_data, ndmin=2).T
 
-        hidden_layer_input = np.dot(self.wih, input_data)
-        hidden_layer_output = self.activation_function(hidden_layer_input)
-        output_layer_input = np.dot(self.who, hidden_layer_output)
-        output_layer_output = self.activation_function(output_layer_input)
+        outputs = [input_data]
+        next_input = np.dot(self.wights[0], input_data)
+        outputs.append(self.activation_function(next_input))
+        for i in range(1, len(self.wights)):
+            next_input = np.dot(self.wights[i], outputs[-1])
+            outputs.append(self.activation_function(next_input))
 
-        output_layer_error = output_data - output_layer_output
-        self.who += self.learning_rate * np.dot(output_layer_error * output_layer_output * (
-            1 - output_layer_output), hidden_layer_output.T)
-
-        hidden_layer_error = np.dot(self.who.T, output_layer_error)
-        self.wih += self.learning_rate * np.dot(hidden_layer_error * hidden_layer_output * (
-            1 - hidden_layer_output), input_data.T)
+        error = output_data - outputs[-1]
+        self.wights[-1] += self.learning_rate * np.dot(error * outputs[-1] * (
+            1 - outputs[-1]), outputs[-2].T)
+        for i in range(len(self.wights) - 2, -1, -1):
+            error = np.dot(self.wights[i + 1].T, error)
+            self.wights[i] += self.learning_rate * np.dot(error * outputs[i + 1] * (
+                1 - outputs[i + 1]), outputs[i].T)
 
     def predict(self, input_data):
         """预测
@@ -63,12 +70,14 @@ class NeuralNetwork:
         """
         input_data = np.array(input_data, ndmin=2).T
 
-        hidden_layer_input = np.dot(self.wih, input_data)
-        hidden_layer_output = self.activation_function(hidden_layer_input)
-        output_layer_input = np.dot(self.who, hidden_layer_output)
-        output_layer_output = self.activation_function(output_layer_input)
+        outputs = [input_data]
+        next_input = np.dot(self.wights[0], input_data)
+        outputs.append(self.activation_function(next_input))
+        for i in range(1, len(self.wights)):
+            next_input = np.dot(self.wights[i], outputs[-1])
+            outputs.append(self.activation_function(next_input))
 
-        return output_layer_output
+        return outputs[-1]
 
 
 def train_data(filename, nn, dump=False):
@@ -120,6 +129,6 @@ def test_data(filename, nn, dump=True):
 
 
 if __name__ == '__main__':
-    nn = NeuralNetwork(28 * 28, 10000, 10, 0.1)
+    nn = MultiNeuralNetwork(28 * 28, [10000], 10, 0.1)
     train_data('./data_100.csv', nn)
     test_data('./data_10.csv', nn)
