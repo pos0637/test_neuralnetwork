@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 import numpy as np
+import scipy.special
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from numpy.core.fromnumeric import ndim
@@ -27,7 +28,7 @@ class NeuralNetwork:
             0.0, pow(self.hidden_layer_nodes, -0.5), (self.hidden_layer_nodes, self.input_layer_nodes))
         self.who = np.random.normal(
             0.0, pow(self.output_layer_nodes, -0.5), (self.output_layer_nodes, self.hidden_layer_nodes))
-        self.activation_function = lambda x: 1.0 / (1.0 + np.exp(-x))
+        self.activation_function = lambda x: scipy.special.expit(x)
 
     def train(self, input_data, output_data):
         """训练
@@ -71,29 +72,31 @@ class NeuralNetwork:
         return output_layer_output
 
 
-def train_data(filename, nn, dump=False):
+def train_data(filename, nn, epochs, dump=False):
     """训练
 
     Args:
         filename (String): 文件名
         nn (NeuralNetwork): 神经网络
+        epochs (Number): 次数
         dump (bool, optional): 是否显示内容. Defaults to False.
     """
     file = open(filename, 'r')
     lines = file.readlines()
     file.close()
 
-    for row in lines:
-        data = row.split(',')
-        input_data = np.asfarray(data[1:]) / 255.0 * 0.99
-        output_data = np.zeros(10) + 0.01
-        output_data[int(data[0])] = 0.99
-        if dump:
-            image = np.reshape(np.asfarray(data[1:]), (28, 28))
-            print(data[0])
-            plt.imshow(image, cmap='Greys', interpolation='None')
-            plt.show()
-        nn.train(input_data, output_data)
+    for _ in range(epochs):
+        for row in lines:
+            data = row.split(',')
+            input_data = np.asfarray(data[1:]) / 255.0 * 0.99
+            output_data = np.zeros(10) + 0.01
+            output_data[int(data[0])] = 0.99
+            if dump:
+                image = np.reshape(np.asfarray(data[1:]), (28, 28))
+                print(data[0])
+                plt.imshow(image, cmap='Greys', interpolation='None')
+                plt.show()
+            nn.train(input_data, output_data)
 
 
 def test_data(filename, nn, dump=True):
@@ -120,6 +123,6 @@ def test_data(filename, nn, dump=True):
 
 
 if __name__ == '__main__':
-    nn = NeuralNetwork(28 * 28, 10000, 10, 0.1)
-    train_data('./data_100.csv', nn)
+    nn = NeuralNetwork(28 * 28, 1000, 10, 0.1)
+    train_data('./data_100.csv', nn, 50)
     test_data('./data_10.csv', nn)

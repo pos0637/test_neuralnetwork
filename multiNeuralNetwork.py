@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 import numpy as np
+import scipy.special
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from numpy.core.fromnumeric import ndim
@@ -24,7 +25,7 @@ class MultiNeuralNetwork:
         self.output_layer_nodes = output_layer_nodes
         self.learning_rate = learning_rate
         self.wights = []
-        self.activation_function = lambda x: 1.0 / (1.0 + np.exp(-x))
+        self.activation_function = lambda x: scipy.special.expit(x)
 
         self.wights.append(np.random.normal(
             0.0, pow(self.hidden_layer_nodes[0], -0.5), (self.hidden_layer_nodes[0], self.input_layer_nodes)))
@@ -53,11 +54,11 @@ class MultiNeuralNetwork:
 
         error = output_data - outputs[-1]
         self.wights[-1] += self.learning_rate * np.dot(error * outputs[-1] * (
-            1 - outputs[-1]), outputs[-2].T)
+            1 - outputs[-1]), np.transpose(outputs[-2]))
         for i in range(len(self.wights) - 2, -1, -1):
             error = np.dot(self.wights[i + 1].T, error)
             self.wights[i] += self.learning_rate * np.dot(error * outputs[i + 1] * (
-                1 - outputs[i + 1]), outputs[i].T)
+                1 - outputs[i + 1]), np.transpose(outputs[i]))
 
     def predict(self, input_data):
         """预测
@@ -80,29 +81,31 @@ class MultiNeuralNetwork:
         return outputs[-1]
 
 
-def train_data(filename, nn, dump=False):
+def train_data(filename, nn, epochs, dump=False):
     """训练
 
     Args:
         filename (String): 文件名
         nn (NeuralNetwork): 神经网络
+        epochs (Number): 次数
         dump (bool, optional): 是否显示内容. Defaults to False.
     """
     file = open(filename, 'r')
     lines = file.readlines()
     file.close()
 
-    for row in lines:
-        data = row.split(',')
-        input_data = np.asfarray(data[1:]) / 255.0 * 0.99
-        output_data = np.zeros(10) + 0.01
-        output_data[int(data[0])] = 0.99
-        if dump:
-            image = np.reshape(np.asfarray(data[1:]), (28, 28))
-            print(data[0])
-            plt.imshow(image, cmap='Greys', interpolation='None')
-            plt.show()
-        nn.train(input_data, output_data)
+    for _ in range(epochs):
+        for row in lines:
+            data = row.split(',')
+            input_data = np.asfarray(data[1:]) / 255.0 * 0.99
+            output_data = np.zeros(10) + 0.01
+            output_data[int(data[0])] = 0.99
+            if dump:
+                image = np.reshape(np.asfarray(data[1:]), (28, 28))
+                print(data[0])
+                plt.imshow(image, cmap='Greys', interpolation='None')
+                plt.show()
+            nn.train(input_data, output_data)
 
 
 def test_data(filename, nn, dump=True):
@@ -129,6 +132,6 @@ def test_data(filename, nn, dump=True):
 
 
 if __name__ == '__main__':
-    nn = MultiNeuralNetwork(28 * 28, [10000], 10, 0.1)
-    train_data('./data_100.csv', nn)
+    nn = MultiNeuralNetwork(28 * 28, [200, 200, 200], 10, 0.1)
+    train_data('./data_100.csv', nn, 50)
     test_data('./data_10.csv', nn)
