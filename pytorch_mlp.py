@@ -4,6 +4,7 @@ import torch  # 导入pytorch
 from torch import nn, optim  # 导入神经网络与优化器对应的类
 import torch.nn.functional as F
 from torchvision import datasets, transforms  # 导入数据集与数据预处理的方法
+import matplotlib.pyplot as plt
 
 # 数据预处理：标准化图像数据，使得灰度数据在-1到+1之间
 transform = transforms.Compose(
@@ -28,24 +29,27 @@ class Classifier(nn.Module):
         self.fc2 = nn.Linear(256, 128)
         self.fc3 = nn.Linear(128, 64)
         self.fc4 = nn.Linear(64, 10)
+        self.dropout = nn.Dropout(p=0.2)
 
     def forward(self, x):
         # make sure input tensor is flattened
         x = x.view(x.shape[0], -1)
 
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
+        x = self.dropout(F.relu(self.fc1(x)))
+        x = self.dropout(F.relu(self.fc2(x)))
+        x = self.dropout(F.relu(self.fc3(x)))
         x = F.log_softmax(self.fc4(x), dim=1)
 
         return x
 
 
+device = torch.device('cuda:0')
+
 # 对上面定义的Classifier类进行实例化
-model = Classifier()
+model = Classifier().to(device)
 
 # 定义损失函数为负对数损失函数
-criterion = nn.NLLLoss()
+criterion = nn.NLLLoss().to(device)
 
 # 优化方法为Adam梯度下降方法，学习率为0.003
 optimizer = optim.Adam(model.parameters(), lr=0.003)
@@ -62,6 +66,8 @@ for e in range(epochs):
 
     # 对训练集中的所有图片都过一遍
     for images, labels in trainloader:
+        images, labels = images.to(device), labels.cuda()
+
         # 将优化器中的求导结果都设为0，否则会在每次反向传播之后叠加之前的
         optimizer.zero_grad()
 
@@ -83,6 +89,8 @@ for e in range(epochs):
 
             # 对测试集中的所有图片都过一遍
             for images, labels in testloader:
+                images, labels = images.to(device), labels.cuda()
+
                 # 对传入的测试集图片进行正向推断、计算损失，accuracy为测试集一万张图片中模型预测正确率
                 log_ps = model(images)
                 test_loss += criterion(log_ps, labels)
@@ -102,3 +110,8 @@ for e in range(epochs):
               "训练误差: {:.3f}.. ".format(running_loss/len(trainloader)),
               "测试误差: {:.3f}.. ".format(test_loss/len(testloader)),
               "模型分类准确率: {:.3f}".format(accuracy/len(testloader)))
+
+plt.plot(train_losses, label='Training loss')
+plt.plot(test_losses, label='Validation loss')
+plt.legend()
+plt.show()
