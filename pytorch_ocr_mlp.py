@@ -55,7 +55,7 @@ class Classifier(nn.Module):
         return x
 
 
-device = torch.device('cuda:0')
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 # 对上面定义的Classifier类进行实例化
 model = Classifier().to(device)
