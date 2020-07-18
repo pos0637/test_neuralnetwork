@@ -14,12 +14,12 @@ transform = transforms.Compose(
 trainset = datasets.FashionMNIST(
     './dataset/', download=True, train=True, transform=transform)
 trainloader = torch.utils.data.DataLoader(
-    trainset, batch_size=64, shuffle=True)
+    trainset, batch_size=2, shuffle=True)
 
 # 下载Fashion-MNIST测试集数据，并构建测试集数据载入器trainloader,每次从测试集中载入64张图片，每次载入都打乱顺序
 testset = datasets.FashionMNIST(
     './dataset/', download=True, train=False, transform=transform)
-testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=True)
+testloader = torch.utils.data.DataLoader(testset, batch_size=2, shuffle=True)
 
 
 class Classifier(nn.Module):
@@ -73,7 +73,9 @@ for e in range(epochs):
 
         # 对64张图片进行推断，计算损失函数，反向传播优化权重，将损失求和
         log_ps = model(images)
+        # print(f'log_ps: {log_ps}')
         loss = criterion(log_ps, labels)
+        # print(f'loss: {loss}, {loss.item()}')
         loss.backward()
         optimizer.step()
         running_loss += loss.item()
@@ -94,6 +96,10 @@ for e in range(epochs):
                 # 对传入的测试集图片进行正向推断、计算损失，accuracy为测试集一万张图片中模型预测正确率
                 log_ps = model(images)
                 test_loss += criterion(log_ps, labels)
+
+                results = log_ps.argmax(dim=1)
+                print(f'result: {log_ps} - {labels} = {results}')
+
                 ps = torch.exp(log_ps)
                 top_p, top_class = ps.topk(1, dim=1)
                 equals = top_class == labels.view(*top_class.shape)
