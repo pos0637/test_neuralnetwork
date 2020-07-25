@@ -132,4 +132,4 @@ dmypy.json
 data/
 dataset/
 samples/
-test1/
+test*/

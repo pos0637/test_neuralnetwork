@@ -9,6 +9,7 @@ from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 import numpy as np
 import cv2
+from torchvision.transforms.transforms import Resize
 
 # 定义网络结构
 
@@ -17,34 +18,34 @@ class AlexNet(nn.Module):
     def __init__(self, num_classes=1000):
         super(AlexNet, self).__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=3, padding=1),
-            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(3, 96, kernel_size=11, stride=4, padding=0),
+            nn.MaxPool2d(kernel_size=3, stride=2),
             nn.ReLU(inplace=True),
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
-            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(96, 256, kernel_size=5, stride=1, padding=2),
+            nn.MaxPool2d(kernel_size=3, stride=2),
             nn.ReLU(inplace=True),
-            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(256, 384, kernel_size=3, stride=1, padding=1),
             # nn.ReLU(inplace=True),
-            nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(384, 384, kernel_size=3, stride=1, padding=1),
             # nn.ReLU(inplace=True),
-            nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
-            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(384, 256, kernel_size=3, stride=1, padding=1),
+            nn.MaxPool2d(kernel_size=3, stride=2),
             nn.ReLU(inplace=True),
         )
-        self.avgpool = nn.AdaptiveAvgPool2d((3, 3))
+        self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
         self.classifier = nn.Sequential(
-            # nn.Dropout(),
-            nn.Linear(256 * 3 * 3, 1024),
+            nn.Dropout(0.5),
+            nn.Linear(256 * 6 * 6, 4096),
             nn.ReLU(inplace=True),
-            # nn.Dropout(),
-            nn.Linear(1024, 1024),
+            nn.Dropout(0.5),
+            nn.Linear(4096, 4096),
             nn.ReLU(inplace=True),
-            nn.Linear(1024, num_classes),
+            nn.Linear(4096, num_classes),
         )
 
     def forward(self, x):
         x = self.features(x)
-        # x = self.avgpool(x)
+        x = self.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.classifier(x)
         return x
@@ -52,26 +53,25 @@ class AlexNet(nn.Module):
 
 # transform
 transform = transforms.Compose([
+    transforms.Resize((227, 227)),
     transforms.RandomHorizontalFlip(),
     transforms.RandomGrayscale(),
     transforms.ToTensor()
 ])
 
 transform1 = transforms.Compose([
+    transforms.Resize((227, 227)),
     transforms.ToTensor()
 ])
 
 # 加载数据
-trainset = torchvision.datasets.MNIST(
-    root='./data', train=True, download=True, transform=transform)
-
+trainset = datasets.ImageFolder(root='./samples', transform=transform1)
 trainloader = torch.utils.data.DataLoader(
-    trainset, batch_size=100, shuffle=True, num_workers=0)  # windows下num_workers设置为0，不然有bug
+    trainset, batch_size=64, shuffle=True, num_workers=0)
 
-testset = torchvision.datasets.MNIST(
-    root='./data', train=False, download=True, transform=transform1)
+testset = datasets.ImageFolder(root='./test5', transform=transform1)
 testloader = torch.utils.data.DataLoader(
-    testset, batch_size=100, shuffle=False, num_workers=0)
+    testset, batch_size=64, shuffle=False, num_workers=0)
 
 #device : GPU or CPU
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -79,7 +79,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def train():
     # net
-    net = AlexNet(num_classes=10)
+    net = AlexNet(num_classes=36)
 
     # 损失函数:这里用交叉熵
     criterion = nn.CrossEntropyLoss()
@@ -110,11 +110,11 @@ def train():
     print("Finished Traning")
 
     # 保存训练模型
-    torch.save(net, 'MNIST.pkl')
+    torch.save(net, 'ocr.pkl')
 
 
-train()
-net = torch.load('MNIST.pkl')
+# train()
+net = torch.load('ocr.pkl')
 net.eval()
 
 # 开始识别
@@ -141,7 +141,10 @@ with torch.no_grad():
         for image in images:
             out = net(image.unsqueeze(0).to(device))
             _, predicted = torch.max(out.data, 1)
-            print(predicted)
+            if predicted.item() < 10:
+                print(predicted.item())
+            else:
+                print(chr(65 + predicted.item() - 10))
 
             img = image.clone().mul(255).byte().numpy().transpose(1, 2, 0)
             img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
