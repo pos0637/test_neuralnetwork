@@ -131,6 +131,6 @@ dmypy.json
 *.pkl
 data/
 dataset/
-samples/
+samples*/
 output/
 test*/
