@@ -129,8 +129,10 @@ dmypy.json
 .pyre/
 .vscode
 *.pkl
+*.hdf5
 data/
 dataset/
 samples*/
 output/
 test*/
+logs/
