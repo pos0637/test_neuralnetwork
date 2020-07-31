@@ -12,7 +12,7 @@ test_datagen = ImageDataGenerator(rescale=1./255)
 
 train_generator = train_datagen.flow_from_directory(
     directory='./samples',
-    target_size=(120, 200),
+    target_size=(227, 227),
     color_mode='rgb',
     batch_size=batch_size,
     class_mode='categorical',
@@ -23,7 +23,7 @@ train_generator = train_datagen.flow_from_directory(
 
 valid_generator = train_datagen.flow_from_directory(
     directory='./samples',
-    target_size=(120, 200),
+    target_size=(227, 227),
     color_mode='rgb',
     batch_size=batch_size,
     class_mode='categorical',
@@ -34,7 +34,7 @@ valid_generator = train_datagen.flow_from_directory(
 
 test_generator = train_datagen.flow_from_directory(
     directory='./output',
-    target_size=(120, 200),
+    target_size=(227, 227),
     color_mode='rgb',
     batch_size=32,
     class_mode='categorical',
