@@ -8,31 +8,23 @@ import numpy as np
 seed = 7
 np.random.seed(seed)
 num_classes = 10 + 26
-batch_size = 16
+batch_size = 64
 
 train_datagen = ImageDataGenerator(
     rescale=1./255,
-    zca_whitening=True,
-    rotation_range=10,
-    width_shift_range=0.2,
-    height_shift_range=0.2,
-    shear_range=0.2,
-    zoom_range=0.3,
-    fill_mode='constant',
-    cval=255)
-valid_datagen = ImageDataGenerator(rescale=1./255, validation_split=0.3)
+    featurewise_center=True,
+    zoom_range=0.3)
+valid_datagen = ImageDataGenerator(rescale=1./255, validation_split=0.3, featurewise_center=True)
 test_datagen = ImageDataGenerator(
     rescale=1./255,
-    validation_split=0.15,
-    zca_whitening=True,
-    fill_mode='constant',
-    cval=255
+    validation_split=0.15,    
+    featurewise_center=True
 )
 
 train_generator = train_datagen.flow_from_directory(
     directory='./samples',
     target_size=(227, 227),
-    color_mode='rgb',
+    color_mode='grayscale',
     batch_size=batch_size,
     class_mode='categorical',
     subset='training',
@@ -43,7 +35,7 @@ train_generator = train_datagen.flow_from_directory(
 valid_generator = valid_datagen.flow_from_directory(
     directory='./samples',
     target_size=(227, 227),
-    color_mode='rgb',
+    color_mode='grayscale',
     batch_size=batch_size,
     class_mode='categorical',
     subset='validation',
@@ -54,7 +46,7 @@ valid_generator = valid_datagen.flow_from_directory(
 test_generator = test_datagen.flow_from_directory(
     directory='./output',
     target_size=(227, 227),
-    color_mode='rgb',
+    color_mode='grayscale',
     batch_size=batch_size,
     class_mode='categorical',
     subset='validation',
@@ -65,7 +57,7 @@ test_generator = test_datagen.flow_from_directory(
 optimizer = keras.optimizers.RMSprop(lr=0.001, rho=0.9, epsilon=1e-06)
 
 model = keras.Sequential()
-model.add(Conv2D(96, (11, 11), strides=(4, 4), input_shape=(227, 227, 3),
+model.add(Conv2D(96, (11, 11), strides=(4, 4), input_shape=(227, 227, 1),
                  padding='valid', activation='relu', kernel_initializer='uniform'))
 model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2)))
 model.add(Conv2D(256, (5, 5), strides=(1, 1), padding='same',
