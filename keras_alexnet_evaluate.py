@@ -1,14 +1,20 @@
 from keras.preprocessing.image import ImageDataGenerator
 from keras.models import load_model
 import numpy as np
+from sklearn.metrics import confusion_matrix
 
+np.set_printoptions(threshold=np.inf)
+np.set_printoptions(linewidth=1024)
 seed = 7
 np.random.seed(seed)
 num_classes = 10 + 26
-batch_size = 16
+batch_size = 64
 
 train_datagen = ImageDataGenerator(rescale=1./255, validation_split=0.15)
-test_datagen = ImageDataGenerator(rescale=1./255)
+test_datagen = ImageDataGenerator(
+    rescale=1./255,
+    zca_whitening=True
+)
 
 train_generator = train_datagen.flow_from_directory(
     directory='./samples',
@@ -46,3 +52,10 @@ model = load_model('./model.hdf5')
 
 loss, accuracy = model.evaluate(test_generator)
 print(f'loss: {loss}, accuracy: {accuracy}')
+
+pred = model.predict(test_generator)
+pred = np.argmax(pred, axis=1)
+print(confusion_matrix(test_generator.classes, pred))
+# 1print('Classification Report')
+# target_names = ['Cats', 'Dogs', 'Horse']
+# print(classification_report(validation_generator.classes, y_pred, target_names=target_names))
